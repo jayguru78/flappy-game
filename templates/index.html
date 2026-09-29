@@ -16,22 +16,70 @@
 
     <div class="top-bar">
         <div>Score: <span id="score">0</span></div>
-        <div>Level: <span id="level">1</span></div>
+        <div>🏆 <span id="highScore">0</span></div>
+        <div>🪙 <span id="coins">0</span></div>
     </div>
 
-    <canvas id="gameCanvas"
-            width="400"
-            height="600">
-    </canvas>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
 
     <div id="message">
         <h1>FLAPPY GAME</h1>
         <p>Tap / Space to Start</p>
     </div>
 
+    <button id="shopButton">🛒 SKINS</button>
+
     <button id="restart">RESTART</button>
 
 </div>
+
+
+<!-- SKIN SHOP -->
+
+<div id="shop">
+
+    <div class="shop-box">
+
+        <button id="closeShop">✕</button>
+
+        <h2>🎨 BIRD SKINS</h2>
+
+        <p class="shop-coins">
+            🪙 Coins: <span id="shopCoins">0</span>
+        </p>
+
+        <div class="skins">
+
+            <div class="skin" data-skin="yellow">
+                <div class="skin-bird yellow"></div>
+                <h3>Classic</h3>
+                <button class="skin-button" data-cost="0">SELECT</button>
+            </div>
+
+            <div class="skin" data-skin="red">
+                <div class="skin-bird red"></div>
+                <h3>Fire</h3>
+                <button class="skin-button" data-cost="10">10 🪙</button>
+            </div>
+
+            <div class="skin" data-skin="blue">
+                <div class="skin-bird blue"></div>
+                <h3>Ocean</h3>
+                <button class="skin-button" data-cost="20">20 🪙</button>
+            </div>
+
+            <div class="skin" data-skin="purple">
+                <div class="skin-bird purple"></div>
+                <h3>Royal</h3>
+                <button class="skin-button" data-cost="40">40 🪙</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 <script>
 
@@ -39,17 +87,61 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const scoreText = document.getElementById("score");
-const levelText = document.getElementById("level");
+const highScoreText = document.getElementById("highScore");
+const coinsText = document.getElementById("coins");
+
+const shopCoins = document.getElementById("shopCoins");
+
 const message = document.getElementById("message");
 const restartButton = document.getElementById("restart");
 
+const shopButton = document.getElementById("shopButton");
+const shop = document.getElementById("shop");
+const closeShop = document.getElementById("closeShop");
+
+
+/* =========================
+   SAVED DATA
+========================= */
+
+let highScore =
+    Number(localStorage.getItem("flappyHighScore")) || 0;
+
+let coins =
+    Number(localStorage.getItem("flappyCoins")) || 0;
+
+let selectedSkin =
+    localStorage.getItem("flappySkin") || "yellow";
+
+let ownedSkins =
+    JSON.parse(localStorage.getItem("flappyOwnedSkins"))
+    || ["yellow"];
+
+
+highScoreText.textContent = highScore;
+coinsText.textContent = coins;
+shopCoins.textContent = coins;
+
+
+/* =========================
+   GAME VARIABLES
+========================= */
+
 let bird;
 let pipes;
+
 let score;
 let level;
+
 let gameRunning;
 let gameOver;
+
 let frame;
+
+
+/* =========================
+   RESET GAME
+========================= */
 
 function resetGame() {
 
@@ -63,6 +155,7 @@ function resetGame() {
     };
 
     pipes = [];
+
     score = 0;
     level = 1;
     frame = 0;
@@ -71,13 +164,23 @@ function resetGame() {
     gameOver = false;
 
     scoreText.textContent = score;
-    levelText.textContent = level;
 
     message.style.display = "block";
+
+    message.innerHTML = `
+        <h1>FLAPPY GAME</h1>
+        <p>Tap / Space to Start</p>
+    `;
+
     restartButton.style.display = "none";
 
     draw();
 }
+
+
+/* =========================
+   START GAME
+========================= */
 
 function startGame() {
 
@@ -86,6 +189,7 @@ function startGame() {
     }
 
     gameRunning = true;
+
     message.style.display = "none";
 
     bird.velocity = bird.jump;
@@ -93,51 +197,91 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
+
+/* =========================
+   JUMP
+========================= */
+
 function jump() {
 
     if (!gameRunning && !gameOver) {
+
         startGame();
+
         return;
     }
 
     if (gameRunning) {
+
         bird.velocity = bird.jump;
     }
 }
 
+
+/* =========================
+   CREATE PIPE
+========================= */
+
 function createPipe() {
 
-    const gap = Math.max(115 - level * 3, 80);
+    const gap =
+        Math.max(115 - level * 3, 80);
+
     const minTop = 70;
-    const maxTop = canvas.height - gap - 100;
+
+    const maxTop =
+        canvas.height - gap - 100;
 
     const topHeight =
-        Math.floor(Math.random() * (maxTop - minTop)) + minTop;
+        Math.floor(
+            Math.random() *
+            (maxTop - minTop)
+        ) + minTop;
 
     pipes.push({
+
         x: canvas.width,
+
         width: 60,
+
         top: topHeight,
+
         gap: gap,
+
         passed: false
     });
 }
 
+
+/* =========================
+   UPDATE GAME
+========================= */
+
 function update() {
 
     bird.velocity += bird.gravity;
+
     bird.y += bird.velocity;
 
-    const speed = 2.5 + level * 0.35;
+    const speed =
+        2.5 + level * 0.35;
+
 
     if (frame % 100 === 0) {
+
         createPipe();
     }
 
+
     pipes.forEach(pipe => {
+
         pipe.x -= speed;
 
-        if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+
+        if (
+            !pipe.passed &&
+            pipe.x + pipe.width < bird.x
+        ) {
 
             pipe.passed = true;
 
@@ -145,83 +289,223 @@ function update() {
 
             scoreText.textContent = score;
 
+
+            /* COIN REWARD */
+
+            coins++;
+
+            saveData();
+
+            updateCoinDisplay();
+
+
+            /* LEVEL */
+
             if (score % 5 === 0) {
+
                 level++;
-                levelText.textContent = level;
+
             }
+
         }
+
     });
 
-    pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
 
-    if (bird.y - bird.size < 0 ||
-        bird.y + bird.size > canvas.height) {
+    pipes =
+        pipes.filter(
+            pipe => pipe.x + pipe.width > 0
+        );
+
+
+    /* BOUNDARY */
+
+    if (
+        bird.y - bird.size < 0 ||
+        bird.y + bird.size > canvas.height
+    ) {
 
         endGame();
+
     }
+
+
+    /* PIPE COLLISION */
 
     pipes.forEach(pipe => {
 
-        const birdLeft = bird.x - bird.size;
-        const birdRight = bird.x + bird.size;
-        const birdTop = bird.y - bird.size;
-        const birdBottom = bird.y + bird.size;
+        const birdLeft =
+            bird.x - bird.size;
 
-        const pipeLeft = pipe.x;
-        const pipeRight = pipe.x + pipe.width;
+        const birdRight =
+            bird.x + bird.size;
+
+        const birdTop =
+            bird.y - bird.size;
+
+        const birdBottom =
+            bird.y + bird.size;
+
+
+        const pipeLeft =
+            pipe.x;
+
+        const pipeRight =
+            pipe.x + pipe.width;
+
 
         const hitX =
             birdRight > pipeLeft &&
             birdLeft < pipeRight;
 
+
         const hitY =
             birdTop < pipe.top ||
-            birdBottom > pipe.top + pipe.gap;
+            birdBottom >
+            pipe.top + pipe.gap;
+
 
         if (hitX && hitY) {
+
             endGame();
+
         }
+
     });
+
 }
+
+
+/* =========================
+   GAME OVER
+========================= */
 
 function endGame() {
 
     gameRunning = false;
+
     gameOver = true;
 
+
+    if (score > highScore) {
+
+        highScore = score;
+
+        localStorage.setItem(
+            "flappyHighScore",
+            highScore
+        );
+
+        highScoreText.textContent =
+            highScore;
+    }
+
+
     message.style.display = "block";
+
 
     message.innerHTML = `
         <h1>GAME OVER</h1>
         <p>Score: ${score}</p>
-        <p>Tap RESTART</p>
+        <p>🏆 Best: ${highScore}</p>
+        <p>🪙 Coins: ${coins}</p>
     `;
 
-    restartButton.style.display = "block";
+
+    restartButton.style.display =
+        "block";
 }
+
+
+/* =========================
+   BACKGROUND
+========================= */
 
 function drawBackground() {
 
     ctx.fillStyle = "#70c5ce";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /* CLOUD */
 
     ctx.fillStyle = "#ffffff";
+
     ctx.globalAlpha = 0.7;
 
+
     ctx.beginPath();
-    ctx.arc(80, 100, 25, 0, Math.PI * 2);
-    ctx.arc(110, 100, 30, 0, Math.PI * 2);
-    ctx.arc(140, 100, 22, 0, Math.PI * 2);
+
+    ctx.arc(
+        80,
+        100,
+        25,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        110,
+        100,
+        30,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        140,
+        100,
+        22,
+        0,
+        Math.PI * 2
+    );
+
     ctx.fill();
+
 
     ctx.globalAlpha = 1;
 }
 
+
+/* =========================
+   BIRD
+========================= */
+
 function drawBird() {
 
-    ctx.fillStyle = "#FFD43B";
+    let birdColor = "#FFD43B";
+
+
+    if (selectedSkin === "red") {
+
+        birdColor = "#ff3b30";
+
+    }
+
+    if (selectedSkin === "blue") {
+
+        birdColor = "#2196f3";
+
+    }
+
+    if (selectedSkin === "purple") {
+
+        birdColor = "#9c27b0";
+
+    }
+
+
+    ctx.fillStyle = birdColor;
+
 
     ctx.beginPath();
+
     ctx.arc(
         bird.x,
         bird.y,
@@ -232,9 +516,13 @@ function drawBird() {
 
     ctx.fill();
 
+
+    /* EYE */
+
     ctx.fillStyle = "#000";
 
     ctx.beginPath();
+
     ctx.arc(
         bird.x + 7,
         bird.y - 6,
@@ -245,20 +533,42 @@ function drawBird() {
 
     ctx.fill();
 
+
+    /* BEAK */
+
     ctx.fillStyle = "#ff7b00";
 
     ctx.beginPath();
-    ctx.moveTo(bird.x + 16, bird.y);
-    ctx.lineTo(bird.x + 28, bird.y + 5);
-    ctx.lineTo(bird.x + 16, bird.y + 10);
+
+    ctx.moveTo(
+        bird.x + 16,
+        bird.y
+    );
+
+    ctx.lineTo(
+        bird.x + 28,
+        bird.y + 5
+    );
+
+    ctx.lineTo(
+        bird.x + 16,
+        bird.y + 10
+    );
+
     ctx.fill();
 }
+
+
+/* =========================
+   PIPES
+========================= */
 
 function drawPipes() {
 
     pipes.forEach(pipe => {
 
         ctx.fillStyle = "#36b24a";
+
 
         ctx.fillRect(
             pipe.x,
@@ -267,14 +577,22 @@ function drawPipes() {
             pipe.top
         );
 
+
         ctx.fillRect(
             pipe.x,
             pipe.top + pipe.gap,
             pipe.width,
             canvas.height
         );
+
     });
+
 }
+
+
+/* =========================
+   DRAW
+========================= */
 
 function draw() {
 
@@ -283,14 +601,23 @@ function draw() {
     drawPipes();
 
     drawBird();
+
 }
+
+
+/* =========================
+   GAME LOOP
+========================= */
 
 function gameLoop() {
 
     if (!gameRunning) {
+
         draw();
+
         return;
     }
+
 
     frame++;
 
@@ -298,31 +625,235 @@ function gameLoop() {
 
     draw();
 
-    requestAnimationFrame(gameLoop);
+
+    requestAnimationFrame(
+        gameLoop
+    );
 }
 
-canvas.addEventListener("click", jump);
 
-document.addEventListener("keydown", event => {
+/* =========================
+   SAVE DATA
+========================= */
 
-    if (event.code === "Space") {
+function saveData() {
 
-        event.preventDefault();
+    localStorage.setItem(
+        "flappyCoins",
+        coins
+    );
 
-        jump();
+    localStorage.setItem(
+        "flappySkin",
+        selectedSkin
+    );
+
+    localStorage.setItem(
+        "flappyOwnedSkins",
+        JSON.stringify(ownedSkins)
+    );
+}
+
+
+/* =========================
+   COIN DISPLAY
+========================= */
+
+function updateCoinDisplay() {
+
+    coinsText.textContent = coins;
+
+    shopCoins.textContent = coins;
+}
+
+
+/* =========================
+   SHOP
+========================= */
+
+shopButton.addEventListener(
+    "click",
+    () => {
+
+        shop.style.display = "flex";
+
+        updateShop();
+
     }
+);
+
+
+closeShop.addEventListener(
+    "click",
+    () => {
+
+        shop.style.display = "none";
+
+    }
+);
+
+
+/* =========================
+   SKIN BUTTONS
+========================= */
+
+document
+.querySelectorAll(".skin-button")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            const skin =
+                button.parentElement
+                .parentElement
+                .dataset.skin;
+
+
+            const cost =
+                Number(
+                    button.dataset.cost
+                );
+
+
+            /* ALREADY OWNED */
+
+            if (
+                ownedSkins.includes(skin)
+            ) {
+
+                selectedSkin = skin;
+
+                saveData();
+
+                updateShop();
+
+                return;
+            }
+
+
+            /* NOT ENOUGH COINS */
+
+            if (coins < cost) {
+
+                alert(
+                    "Coins kam hain!"
+                );
+
+                return;
+            }
+
+
+            /* BUY */
+
+            coins -= cost;
+
+            ownedSkins.push(skin);
+
+            selectedSkin = skin;
+
+
+            saveData();
+
+            updateCoinDisplay();
+
+            updateShop();
+
+        }
+    );
+
 });
 
-restartButton.addEventListener("click", () => {
 
-    resetGame();
-    startGame();
-});
+/* =========================
+   UPDATE SHOP
+========================= */
+
+function updateShop() {
+
+    document
+    .querySelectorAll(".skin")
+    .forEach(card => {
+
+        const skin =
+            card.dataset.skin;
+
+        const button =
+            card.querySelector(
+                ".skin-button"
+            );
+
+
+        if (
+            selectedSkin === skin
+        ) {
+
+            button.textContent =
+                "SELECTED";
+
+        }
+        else if (
+            ownedSkins.includes(skin)
+        ) {
+
+            button.textContent =
+                "SELECT";
+
+        }
+
+    });
+
+}
+
+
+/* =========================
+   CONTROLS
+========================= */
+
+canvas.addEventListener(
+    "click",
+    jump
+);
+
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.code === "Space"
+        ) {
+
+            event.preventDefault();
+
+            jump();
+
+        }
+
+    }
+);
+
+
+restartButton.addEventListener(
+    "click",
+    () => {
+
+        resetGame();
+
+        startGame();
+
+    }
+);
+
+
+/* =========================
+   START
+========================= */
 
 resetGame();
 
 </script>
 
 </body>
-</html>
-O
+</html>O
